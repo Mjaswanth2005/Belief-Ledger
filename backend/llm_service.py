@@ -60,16 +60,21 @@ def _parse_json(text: str) -> dict:
         return {}
 
 
-def _chat(system: str, user: str, temperature: float = 0.2, max_tokens: int = 1800) -> str:
-    resp = get_client().chat.completions.create(
-        model=MODEL,
-        messages=[
+def _chat(system: str, user: str, temperature: float = 0.2, max_tokens: int = 1800,
+          json_mode: bool = True) -> str:
+    kwargs = {
+        "model": MODEL,
+        "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        # Nebius (OpenAI-compatible) supports JSON-only response_format
+        kwargs["response_format"] = {"type": "json_object"}
+    resp = get_client().chat.completions.create(**kwargs)
     return resp.choices[0].message.content or ""
 
 
@@ -84,15 +89,28 @@ For each belief, extract:
 - evidence: list of brief evidence/reason quotes from the text supporting the belief (each <=200 chars)
 - assumptions: list of implicit upstream assumptions the belief rests on (each <=140 chars, phrased as their own claims)
 
-Return STRICT JSON ONLY: {"beliefs":[{"statement":..., "confidence":..., "topic":..., "evidence":[...], "assumptions":[...]}, ...]}
-No prose. No markdown fences. Just JSON."""
+If the text contains ANY opinion at all, you MUST return at least one belief. Only return an empty list if the text is purely factual reporting with zero opinions.
+
+Return STRICT JSON ONLY in this exact shape: {"beliefs":[{"statement":"...","confidence":75,"topic":"...","evidence":["..."],"assumptions":["..."]}]}
+No prose. No markdown fences. Just the JSON object."""
 
 
 def extract_beliefs(text: str) -> List[dict]:
     user = f"Extract beliefs from this writing:\n\n---\n{text}\n---"
-    raw = _chat(EXTRACT_SYSTEM, user, temperature=0.2, max_tokens=2200)
+    # First attempt with JSON mode
+    raw = _chat(EXTRACT_SYSTEM, user, temperature=0.2, max_tokens=2200, json_mode=True)
     data = _parse_json(raw)
     beliefs = data.get("beliefs", []) if isinstance(data, dict) else []
+    # Retry once if empty but text is non-trivial
+    if not beliefs and len(text) > 20:
+        logger.warning("extract_beliefs: empty result, retrying with stricter prompt")
+        retry_user = (
+            f"The following text contains at least one opinion. Extract every belief you can find.\n"
+            f"Return JSON: {{\"beliefs\":[...]}}\n\n---\n{text}\n---"
+        )
+        raw2 = _chat(EXTRACT_SYSTEM, retry_user, temperature=0.4, max_tokens=2200, json_mode=True)
+        data2 = _parse_json(raw2)
+        beliefs = data2.get("beliefs", []) if isinstance(data2, dict) else []
     cleaned = []
     for b in beliefs:
         if not isinstance(b, dict) or not b.get("statement"):

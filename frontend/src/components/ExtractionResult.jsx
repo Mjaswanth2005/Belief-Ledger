@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 
 /**
  * Inline panel shown after a successful entry commit.
@@ -44,6 +45,9 @@ export default function ExtractionResult({ result, api, beliefs, onOpenBelief, o
     try {
       const r = await axios.post(`${api}/beliefs/${beliefId}/crux`);
       setCruxByBelief(prev => ({ ...prev, [beliefId]: r.data?.cruxes || [] }));
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "crux computation failed");
+      setCruxByBelief(prev => ({ ...prev, [beliefId]: [] }));
     } finally {
       setComputing(prev => ({ ...prev, [beliefId]: false }));
     }

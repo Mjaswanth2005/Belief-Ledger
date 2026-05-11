@@ -36,3 +36,15 @@ A single power-user (writer / researcher / engineer / founder) who wants explici
 - P2: scheduled "review your top-N most central beliefs" prompt
 - P2: keyboard nav between revisions
 - P2: pagination when revisions > 500
+
+## Iteration 2 (2026-02 same session)
+Addressing 6 UX gaps user identified:
+- POST /api/seed-demo (instant value seed; uses LLM with json-mode + retry)
+- GET /api/cruxes?limit=N (top-N ranked by centrality × revision-volatility)
+- GET /api/beliefs/{id}/ripple (multi-hop downstream BFS)
+- 4-tab navigation: LEDGER | GRAPH | CRUX | SCANNER
+- ExtractionResult inline panel after each commit (contradictions surfaced FIRST with side-by-side confidence bars + ripple panel)
+- "what would change my mind?" inline button per extracted belief
+- Empty-state [load demo ledger] buttons on Ledger/Graph
+- BeliefDetail contradictions render side-by-side confidence comparison
+- llm_service hardened: response_format=json_object + retry on empty extraction
