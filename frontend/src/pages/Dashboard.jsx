@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { Brain, RefreshCw, Trash2, Sparkles, Sun, Moon } from "lucide-react";
 import Composer from "@/components/Composer";
 import LedgerView from "@/components/LedgerView";
 import GraphView from "@/components/GraphView";
@@ -8,17 +9,19 @@ import ScannerView from "@/components/ScannerView";
 import CruxView from "@/components/CruxView";
 import BeliefDetail from "@/components/BeliefDetail";
 import ExtractionResult from "@/components/ExtractionResult";
+import { useTheme } from "@/theme";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const TABS = [
-  { id: "ledger", label: "LEDGER", hint: "git log of beliefs" },
-  { id: "graph", label: "GRAPH", hint: "dependency map" },
-  { id: "crux", label: "CRUX", hint: "what would change my mind?" },
-  { id: "scanner", label: "SCANNER", hint: "external claim diff" },
+  { id: "ledger", label: "Ledger", color: "bg-mint", hint: "Your belief history" },
+  { id: "graph", label: "Graph", color: "bg-sky", hint: "Dependency map" },
+  { id: "crux", label: "Crux", color: "bg-pinky", hint: "What would change my mind?" },
+  { id: "scanner", label: "Scanner", color: "bg-butter", hint: "Spot conflicts in any text" },
 ];
 
 export default function Dashboard() {
+  const { theme, toggle: toggleTheme } = useTheme();
   const [tab, setTab] = useState("ledger");
   const [beliefs, setBeliefs] = useState([]);
   const [ledger, setLedger] = useState([]);
@@ -41,7 +44,7 @@ export default function Dashboard() {
       setLedger(l.data || []);
       setGraph(g.data || { nodes: [], links: [] });
     } catch (e) {
-      toast.error(`fetch failed: ${e?.message || e}`);
+      toast.error(`Couldn't load: ${e?.message || e}`);
     } finally {
       setLoading(false);
     }
@@ -57,13 +60,12 @@ export default function Dashboard() {
       const contradictions = (res.data?.results || []).flatMap(r =>
         (r.relationships || []).filter(x => x.relation === "contradiction")
       );
-      toast.success(`extracted ${n} belief${n === 1 ? "" : "s"}${contradictions.length ? ` · ${contradictions.length} contradiction(s)` : ""}`);
+      toast.success(`Captured ${n} belief${n === 1 ? "" : "s"}${contradictions.length ? ` · ${contradictions.length} contradiction!` : ""}`);
       await refresh();
       setLastExtraction(res.data);
       return res.data;
     } catch (e) {
-      const msg = e?.response?.data?.detail || e?.message || "extraction failed";
-      toast.error(`> err: ${msg}`);
+      toast.error(e?.response?.data?.detail || "Extraction failed");
       return null;
     } finally {
       setSubmitting(false);
@@ -71,14 +73,14 @@ export default function Dashboard() {
   };
 
   const handleReset = async () => {
-    if (!window.confirm("Wipe entire ledger? This cannot be undone.")) return;
+    if (!window.confirm("Wipe everything? This cannot be undone.")) return;
     try {
       await axios.delete(`${API}/reset`);
       setLastExtraction(null);
-      toast.success("ledger reset");
+      toast.success("Reset complete");
       await refresh();
-    } catch (e) {
-      toast.error("reset failed");
+    } catch {
+      toast.error("Reset failed");
     }
   };
 
@@ -86,61 +88,73 @@ export default function Dashboard() {
     try {
       await axios.delete(`${API}/beliefs/${id}`);
       setSelectedId(null);
-      toast.success("belief deleted");
+      toast.success("Belief deleted");
       await refresh();
-    } catch (e) {
-      toast.error("delete failed");
-    }
+    } catch { toast.error("Delete failed"); }
   };
 
   const handleSeed = async () => {
     setSeeding(true);
     try {
       await axios.post(`${API}/seed-demo`);
-      toast.success("demo ledger loaded");
+      toast.success("Demo loaded — explore it!");
       await refresh();
       setLastExtraction(null);
-    } catch (e) {
-      toast.error("seed failed");
-    } finally {
-      setSeeding(false);
-    }
+    } catch { toast.error("Seed failed"); }
+    finally { setSeeding(false); }
   };
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="dashboard">
       {/* Header */}
-      <header className="border-b border-edge px-6 py-3 flex items-center justify-between bg-void">
-        <div className="flex items-center gap-4">
-          <div className="text-amber-glow font-bold tracking-[0.3em] text-sm">
-            &gt;_ BELIEF_LEDGER
+      <header className="border-b-2 border-ink bg-cream px-6 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-14 bg-pinky border-2 border-ink rounded-2xl shadow-brutal flex items-center justify-center">
+            <Brain className="w-7 h-7 text-ink" strokeWidth={2.5} />
           </div>
-          <div className="text-ink-secondary text-xs hidden sm:block">
-            v0.1 · personal epistemic ledger
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl text-ink leading-none">Belief Ledger</h1>
+            <p className="text-xs sm:text-sm text-ink/60 mt-0.5">Your endless journey to clarity</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-ink-secondary">
-          <span data-testid="belief-count">[{beliefs.length}] beliefs</span>
-          <span className="hidden md:inline">·</span>
-          <span className="hidden md:inline" data-testid="revision-count">[{ledger.length}] revisions</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Pill color="bg-mint" testId="belief-count">{beliefs.length} beliefs</Pill>
+          <Pill color="bg-butter" testId="revision-count">{ledger.length} revisions</Pill>
           <button
             onClick={handleSeed}
             disabled={seeding}
-            className="ml-3 border border-edge px-2 py-1 hover:border-amber-glow hover:text-amber-glow transition-colors disabled:opacity-50"
+            className="btn-brutal bg-sky px-3 py-2 text-sm gap-1.5 disabled:opacity-60"
             data-testid="seed-demo-btn"
-            title="wipe + seed a demo ledger"
-          >{seeding ? "seeding…" : "[demo]"}</button>
+            title="Wipe + seed demo data"
+          >
+            <Sparkles className="w-4 h-4" /> {seeding ? "Seeding…" : "Demo"}
+          </button>
+          <button
+            onClick={refresh}
+            className="btn-brutal bg-paper p-2"
+            data-testid="refresh-btn"
+            title="Refresh"
+          ><RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /></button>
+          <button
+            onClick={toggleTheme}
+            className="btn-brutal bg-paper p-2"
+            data-testid="theme-toggle-btn"
+            title={theme === "dark" ? "Switch to light" : "Switch to dark"}
+            aria-label="Toggle appearance"
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
           <button
             onClick={handleReset}
-            className="border border-edge px-2 py-1 hover:border-conflict hover:text-conflict transition-colors"
+            className="btn-brutal bg-coral px-3 py-2 text-sm gap-1.5"
             data-testid="reset-btn"
-            title="wipe everything"
-          >[reset]</button>
+          ><Trash2 className="w-4 h-4" /> Reset</button>
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[420px_1fr]">
-        <aside className="border-r border-edge p-5 lg:max-h-[calc(100vh-57px)] lg:overflow-y-auto">
+      {/* Body */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-6 p-6">
+        <aside className="lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto pr-1">
           <Composer onSubmit={handleSubmitEntry} submitting={submitting} />
           {lastExtraction && (
             <ExtractionResult
@@ -153,54 +167,45 @@ export default function Dashboard() {
           )}
         </aside>
 
-        <main className="flex flex-col lg:max-h-[calc(100vh-57px)]">
-          <div className="border-b border-edge flex overflow-x-auto" data-testid="tabs">
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                data-testid={`tab-${t.id}`}
-                className={`px-5 py-3 text-xs tracking-[0.25em] uppercase border-r border-edge transition-colors whitespace-nowrap ${
-                  tab === t.id
-                    ? "text-amber-glow border-b-2 border-b-amber-glow bg-void-surface"
-                    : "text-ink-secondary hover:text-ink-primary hover:bg-void-hover"
-                }`}
-              >
-                [{t.label}]
-                <span className="hidden xl:inline ml-2 text-[10px] normal-case tracking-normal text-ink-secondary/60">
-                  {t.hint}
-                </span>
-              </button>
-            ))}
-            <div className="ml-auto px-5 py-3 text-[10px] text-ink-secondary/60 self-center whitespace-nowrap">
-              {loading ? <span className="text-amber-glow">syncing…</span> : <span>idle</span>}
-            </div>
+        <main className="flex flex-col lg:max-h-[calc(100vh-128px)] gap-4">
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-3" data-testid="tabs">
+            {TABS.map(t => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  data-testid={`tab-${t.id}`}
+                  className={`btn-brutal px-5 py-3 text-base ${active ? `${t.color} shadow-brutal translate-x-0 translate-y-0` : "bg-paper hover:-translate-y-0.5 hover:shadow-brutal"} transition-all`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {tab === "ledger" && (
-              <LedgerView
-                revisions={ledger}
-                beliefs={beliefs}
-                onSelect={setSelectedId}
-                onSeed={handleSeed}
-                seeding={seeding}
-              />
-            )}
-            {tab === "graph" && (
-              <GraphView
-                graph={graph}
-                onSelect={setSelectedId}
-                onSeed={handleSeed}
-                seeding={seeding}
-              />
-            )}
-            {tab === "crux" && (
-              <CruxView api={API} onSelect={setSelectedId} />
-            )}
-            {tab === "scanner" && (
-              <ScannerView api={API} beliefs={beliefs} onSelect={setSelectedId} />
-            )}
+          {/* Active tab hint */}
+          <div className="text-sm text-ink/60 font-medium">
+            {TABS.find(t => t.id === tab)?.hint}
+          </div>
+
+          {/* Content panel */}
+          <div className="flex-1 overflow-hidden bg-paper border-2 border-ink rounded-2xl shadow-brutal-lg">
+            <div className="h-full overflow-y-auto">
+              {tab === "ledger" && (
+                <LedgerView revisions={ledger} beliefs={beliefs} onSelect={setSelectedId} onSeed={handleSeed} seeding={seeding} />
+              )}
+              {tab === "graph" && (
+                <GraphView graph={graph} onSelect={setSelectedId} onSeed={handleSeed} seeding={seeding} />
+              )}
+              {tab === "crux" && (
+                <CruxView api={API} onSelect={setSelectedId} />
+              )}
+              {tab === "scanner" && (
+                <ScannerView api={API} beliefs={beliefs} onSelect={setSelectedId} />
+              )}
+            </div>
           </div>
         </main>
       </div>
@@ -214,5 +219,14 @@ export default function Dashboard() {
         />
       )}
     </div>
+  );
+}
+
+function Pill({ children, color, testId }) {
+  return (
+    <span
+      className={`hidden sm:inline-flex items-center font-bold text-sm px-3 py-1.5 border-2 border-ink rounded-full ${color} shadow-brutal-sm`}
+      data-testid={testId}
+    >{children}</span>
   );
 }

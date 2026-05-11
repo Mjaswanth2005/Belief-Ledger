@@ -55,3 +55,9 @@ Addressing 6 UX gaps user identified:
 - Initial migration applied: `alembic upgrade head`
 - Swapped LLM provider: Nebius → Groq (`llama-3.3-70b-versatile`, OpenAI-compatible). Generic env names `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` to keep provider-agnostic.
 - Verified: 21/21 pytest, all endpoints working; seed-demo now reliably produces 7 beliefs with contradicts+supports edges (faster + more reliable due to Groq + response_format=json_object)
+
+## Iteration 4 — UI Redesign + Dark Mode
+- Visual style overhauled to neo-brutalist (per user image): cream `#FBF7E8` bg, chunky 2px black borders, hard offset shadows (`4px 4px 0`), pastel accent pills (mint/pinky/butter/sky/coral/lavender). Fonts: Archivo Black (display) + DM Sans (body).
+- All 8 components rewritten (Dashboard, Composer, LedgerView, GraphView, CruxView, ScannerView, ExtractionResult, BeliefDetail).
+- **Light/Dark mode toggle** added (sun/moon icon in header, `data-testid=theme-toggle-btn`). Implementation: CSS variables for neutrals (`--c-bg`, `--c-surface`, `--c-ink`, `--c-shadow`) in `:root` and `.dark`; Tailwind colors backed by those vars. Theme persisted in localStorage. ForceGraph2D canvas colors also flip via `useTheme`.
+- Verified: light mode shows cream + pastel as designed; dark mode shows warm charcoal `#15140E` with cream text and cream-tinted shadows — brutalist look preserved.

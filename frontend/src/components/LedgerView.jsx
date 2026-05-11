@@ -1,116 +1,120 @@
-const KIND_GLYPH = {
-  created: { glyph: "+", color: "text-aligned" },
-  confidence_shift: { glyph: "~", color: "text-amber-glow" },
-  evidence_added: { glyph: "&", color: "text-ink-primary" },
-  dependency_added: { glyph: "→", color: "text-ink-primary" },
-  contradiction: { glyph: "!", color: "text-conflict" },
-  merge: { glyph: "⊕", color: "text-amber-glow" },
+import { Plus, AlertTriangle, GitMerge, ArrowRight, FileText, Zap } from "lucide-react";
+
+const KIND_META = {
+  created: { Icon: Plus, color: "bg-mint", label: "new" },
+  confidence_shift: { Icon: Zap, color: "bg-butter", label: "shift" },
+  evidence_added: { Icon: FileText, color: "bg-cream-deep", label: "evidence" },
+  dependency_added: { Icon: ArrowRight, color: "bg-sky", label: "depends" },
+  contradiction: { Icon: AlertTriangle, color: "bg-coral", label: "conflict" },
+  merge: { Icon: GitMerge, color: "bg-lavender", label: "merge" },
 };
 
-function fmtTime(iso) {
+function fmt(iso) {
   try {
     const d = new Date(iso);
-    return d.toISOString().replace("T", " ").slice(0, 19) + "Z";
+    const today = new Date();
+    const diff = (today - d) / 1000;
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return d.toLocaleDateString();
   } catch { return iso; }
 }
 
 export default function LedgerView({ revisions, beliefs, onSelect, onSeed, seeding }) {
   if (!revisions || revisions.length === 0) {
     return (
-      <div className="p-8 text-center text-ink-secondary text-sm" data-testid="ledger-empty">
-        <pre className="inline-block text-left text-amber-glow/60 text-xs leading-snug mb-4">
-{`     ┌─────────────────────┐
-     │   EMPTY LEDGER      │
-     │   No commits yet.   │
-     └─────────────────────┘`}
-        </pre>
-        <div className="mb-4">Write your first entry to start tracking.</div>
+      <div className="p-10 text-center" data-testid="ledger-empty">
+        <div className="inline-block w-20 h-20 bg-pinky border-2 border-ink rounded-2xl shadow-brutal mb-4 flex items-center justify-center">
+          <FileText className="w-10 h-10 text-ink" strokeWidth={2.5} />
+        </div>
+        <h3 className="font-display text-2xl mb-2">Empty ledger</h3>
+        <p className="text-sm text-ink/60 mb-5">Write your first thought, or load demo data to explore.</p>
         {onSeed && (
           <button
             onClick={onSeed}
             disabled={seeding}
-            className="border border-amber-glow text-amber-glow px-4 py-2 text-xs uppercase tracking-[0.25em] hover:bg-amber-glow hover:text-void transition-colors disabled:opacity-50"
+            className="btn-brutal-lg bg-mint px-5 py-3 text-base"
             data-testid="seed-from-ledger-btn"
-          >
-            {seeding ? "seeding…" : "[ load demo ledger ]"}
-          </button>
+          >{seeding ? "Loading…" : "Load demo ledger"}</button>
         )}
       </div>
     );
   }
 
-  // Group beliefs section
   return (
-    <div className="grid lg:grid-cols-[1fr_320px] divide-x divide-edge">
+    <div className="grid lg:grid-cols-[1fr_320px] divide-y lg:divide-y-0 lg:divide-x-2 divide-ink/10">
+      {/* Revision feed */}
       <div className="p-5" data-testid="ledger-view">
-        <div className="text-xs text-ink-secondary uppercase tracking-[0.25em] mb-4">
-          &gt; revision_log <span className="text-ink-secondary/50">({revisions.length})</span>
-        </div>
-        <div className="font-mono text-sm space-y-0">
+        <h3 className="font-display text-lg mb-4">Revision log <span className="text-ink/40">({revisions.length})</span></h3>
+        <div className="space-y-3">
           {revisions.map((r, idx) => {
-            const k = KIND_GLYPH[r.kind] || { glyph: "·", color: "text-ink-secondary" };
+            const meta = KIND_META[r.kind] || { Icon: Plus, color: "bg-paper", label: r.kind };
+            const { Icon } = meta;
             return (
-              <div
+              <button
                 key={r.id}
-                className="group relative flex gap-3 py-2.5 border-l-2 border-edge pl-4 hover:border-amber-glow hover:bg-void-surface/40 transition-colors cursor-pointer"
                 onClick={() => onSelect && onSelect(r.belief_id)}
                 data-testid={`revision-${idx}`}
+                className="w-full text-left flex items-start gap-3 p-3 bg-cream-soft border-2 border-ink rounded-xl hover:shadow-brutal hover:-translate-y-0.5 transition-all"
               >
-                <span className={`${k.color} font-bold w-4 text-center`}>{k.glyph}</span>
-                <span className="text-amber-glow w-20 truncate text-xs">{r.short_id}</span>
-                <span className="text-ink-secondary text-xs w-44 truncate hidden md:inline">
-                  {fmtTime(r.created_at)}
-                </span>
-                <span className="flex-1 text-ink-primary text-sm group-hover:text-amber-glow transition-colors">
-                  {r.summary}
-                </span>
-                {r.new_confidence != null && (
-                  <span className="text-xs text-ink-secondary hidden sm:inline">
-                    {r.prev_confidence != null && `${r.prev_confidence}→`}{r.new_confidence}%
-                  </span>
-                )}
-              </div>
+                <div className={`shrink-0 w-10 h-10 ${meta.color} border-2 border-ink rounded-lg flex items-center justify-center`}>
+                  <Icon className="w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-ink/60 font-bold mb-1">
+                    <span className="font-mono px-2 py-0.5 bg-cream border border-ink/30 rounded">{r.short_id}</span>
+                    <span className="uppercase tracking-wider">{meta.label}</span>
+                    <span>· {fmt(r.created_at)}</span>
+                  </div>
+                  <div className="text-sm text-ink leading-snug">{r.summary}</div>
+                  {r.new_confidence != null && (
+                    <div className="mt-1.5 text-xs text-ink/60 font-bold">
+                      {r.prev_confidence != null && `${r.prev_confidence}% → `}{r.new_confidence}% confidence
+                    </div>
+                  )}
+                </div>
+              </button>
             );
           })}
         </div>
       </div>
 
+      {/* Belief index */}
       <aside className="p-5">
-        <div className="text-xs text-ink-secondary uppercase tracking-[0.25em] mb-4">
-          &gt; beliefs_index <span className="text-ink-secondary/50">({beliefs.length})</span>
-        </div>
-        <div className="space-y-2">
+        <h3 className="font-display text-lg mb-4">Beliefs <span className="text-ink/40">({beliefs.length})</span></h3>
+        <div className="space-y-3">
           {beliefs.length === 0 ? (
-            <div className="text-xs text-ink-secondary">No beliefs recorded.</div>
+            <p className="text-sm text-ink/50">No beliefs yet.</p>
           ) : beliefs.map(b => (
             <button
               key={b.id}
               onClick={() => onSelect && onSelect(b.id)}
-              className="w-full text-left border border-edge p-2.5 hover:border-amber-glow transition-colors group"
               data-testid={`belief-card-${b.short_id}`}
+              className="w-full text-left bg-paper border-2 border-ink rounded-xl p-3 hover:shadow-brutal hover:-translate-y-0.5 transition-all"
             >
-              <div className="flex items-center justify-between text-[10px] text-ink-secondary mb-1">
-                <span className="text-amber-glow">{b.short_id}</span>
-                <span>{b.confidence}%</span>
+              <div className="flex items-center justify-between text-xs font-bold mb-1">
+                <span className="font-mono text-ink/60">{b.short_id}</span>
+                <span className="px-2 py-0.5 bg-mint border-2 border-ink rounded-full">{b.confidence}%</span>
               </div>
-              <div className="text-xs text-ink-primary leading-snug line-clamp-2 group-hover:text-amber-glow transition-colors">
-                {b.statement}
-              </div>
-              <div className="flex items-center justify-between mt-2 text-[10px] text-ink-secondary/70">
+              <div className="text-sm text-ink leading-snug line-clamp-2 font-medium mb-2">{b.statement}</div>
+              <div className="flex items-center justify-between text-xs text-ink/50 mb-2">
                 <span>#{b.topic}</span>
-                {b.centrality > 0 && <span>★ {b.centrality}</span>}
+                {b.centrality > 0 && <span className="font-bold">★ {b.centrality}</span>}
               </div>
-              {/* confidence bar */}
-              <div className="mt-2 h-1 bg-edge relative">
-                <div
-                  className="absolute inset-y-0 left-0 bg-amber-glow"
-                  style={{ width: `${b.confidence}%` }}
-                />
-              </div>
+              <ConfBar value={b.confidence} />
             </button>
           ))}
         </div>
       </aside>
+    </div>
+  );
+}
+
+function ConfBar({ value }) {
+  return (
+    <div className="h-3 bg-cream border-2 border-ink rounded-full overflow-hidden">
+      <div className="h-full bg-butter border-r-2 border-ink" style={{ width: `${value}%` }} />
     </div>
   );
 }
