@@ -5,13 +5,16 @@ import Composer from "@/components/Composer";
 import LedgerView from "@/components/LedgerView";
 import GraphView from "@/components/GraphView";
 import ScannerView from "@/components/ScannerView";
+import CruxView from "@/components/CruxView";
 import BeliefDetail from "@/components/BeliefDetail";
+import ExtractionResult from "@/components/ExtractionResult";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const TABS = [
   { id: "ledger", label: "LEDGER", hint: "git log of beliefs" },
   { id: "graph", label: "GRAPH", hint: "dependency map" },
+  { id: "crux", label: "CRUX", hint: "what would change my mind?" },
   { id: "scanner", label: "SCANNER", hint: "external claim diff" },
 ];
 
@@ -23,6 +26,8 @@ export default function Dashboard() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lastExtraction, setLastExtraction] = useState(null);
+  const [seeding, setSeeding] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -54,6 +59,7 @@ export default function Dashboard() {
       );
       toast.success(`extracted ${n} belief${n === 1 ? "" : "s"}${contradictions.length ? ` · ${contradictions.length} contradiction(s)` : ""}`);
       await refresh();
+      setLastExtraction(res.data);
       return res.data;
     } catch (e) {
       const msg = e?.response?.data?.detail || e?.message || "extraction failed";
@@ -68,6 +74,7 @@ export default function Dashboard() {
     if (!window.confirm("Wipe entire ledger? This cannot be undone.")) return;
     try {
       await axios.delete(`${API}/reset`);
+      setLastExtraction(null);
       toast.success("ledger reset");
       await refresh();
     } catch (e) {
@@ -83,6 +90,20 @@ export default function Dashboard() {
       await refresh();
     } catch (e) {
       toast.error("delete failed");
+    }
+  };
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    try {
+      await axios.post(`${API}/seed-demo`);
+      toast.success("demo ledger loaded");
+      await refresh();
+      setLastExtraction(null);
+    } catch (e) {
+      toast.error("seed failed");
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -103,31 +124,43 @@ export default function Dashboard() {
           <span className="hidden md:inline">·</span>
           <span className="hidden md:inline" data-testid="revision-count">[{ledger.length}] revisions</span>
           <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="ml-3 border border-edge px-2 py-1 hover:border-amber-glow hover:text-amber-glow transition-colors disabled:opacity-50"
+            data-testid="seed-demo-btn"
+            title="wipe + seed a demo ledger"
+          >{seeding ? "seeding…" : "[demo]"}</button>
+          <button
             onClick={handleReset}
-            className="ml-3 border border-edge px-2 py-1 hover:border-conflict hover:text-conflict transition-colors"
+            className="border border-edge px-2 py-1 hover:border-conflict hover:text-conflict transition-colors"
             data-testid="reset-btn"
             title="wipe everything"
           >[reset]</button>
         </div>
       </header>
 
-      {/* Body grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[420px_1fr]">
-        {/* Composer column */}
         <aside className="border-r border-edge p-5 lg:max-h-[calc(100vh-57px)] lg:overflow-y-auto">
           <Composer onSubmit={handleSubmitEntry} submitting={submitting} />
+          {lastExtraction && (
+            <ExtractionResult
+              result={lastExtraction}
+              api={API}
+              beliefs={beliefs}
+              onOpenBelief={setSelectedId}
+              onClose={() => setLastExtraction(null)}
+            />
+          )}
         </aside>
 
-        {/* Main column */}
         <main className="flex flex-col lg:max-h-[calc(100vh-57px)]">
-          {/* Tabs */}
-          <div className="border-b border-edge flex" data-testid="tabs">
+          <div className="border-b border-edge flex overflow-x-auto" data-testid="tabs">
             {TABS.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 data-testid={`tab-${t.id}`}
-                className={`px-5 py-3 text-xs tracking-[0.25em] uppercase border-r border-edge transition-colors ${
+                className={`px-5 py-3 text-xs tracking-[0.25em] uppercase border-r border-edge transition-colors whitespace-nowrap ${
                   tab === t.id
                     ? "text-amber-glow border-b-2 border-b-amber-glow bg-void-surface"
                     : "text-ink-secondary hover:text-ink-primary hover:bg-void-hover"
@@ -139,7 +172,7 @@ export default function Dashboard() {
                 </span>
               </button>
             ))}
-            <div className="ml-auto px-5 py-3 text-[10px] text-ink-secondary/60 self-center">
+            <div className="ml-auto px-5 py-3 text-[10px] text-ink-secondary/60 self-center whitespace-nowrap">
               {loading ? <span className="text-amber-glow">syncing…</span> : <span>idle</span>}
             </div>
           </div>
@@ -150,13 +183,20 @@ export default function Dashboard() {
                 revisions={ledger}
                 beliefs={beliefs}
                 onSelect={setSelectedId}
+                onSeed={handleSeed}
+                seeding={seeding}
               />
             )}
             {tab === "graph" && (
               <GraphView
                 graph={graph}
                 onSelect={setSelectedId}
+                onSeed={handleSeed}
+                seeding={seeding}
               />
+            )}
+            {tab === "crux" && (
+              <CruxView api={API} onSelect={setSelectedId} />
             )}
             {tab === "scanner" && (
               <ScannerView api={API} beliefs={beliefs} onSelect={setSelectedId} />

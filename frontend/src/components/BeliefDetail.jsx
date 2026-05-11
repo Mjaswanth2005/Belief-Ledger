@@ -160,9 +160,38 @@ export default function BeliefDetail({ beliefId, api, onClose, onDelete }) {
             )}
             {data.contradictions?.length > 0 && (
               <Section title="contradicts" tone="conflict">
-                {data.contradictions.map(c => (
-                  <RelRow key={c.id} b={c} kind="contradicts" />
-                ))}
+                <div className="space-y-3">
+                  {data.contradictions.map(c => (
+                    <div key={c.id} className="border border-conflict/40 p-3" data-testid={`contradiction-${c.short_id}`}>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-widest text-ink-secondary mb-1">this belief</div>
+                          <div className="text-xs text-ink-primary line-clamp-2 mb-1">{b.statement}</div>
+                          <div className="h-1 bg-edge relative mb-1">
+                            <div className="absolute inset-y-0 left-0 bg-amber-glow" style={{ width: `${b.confidence}%` }} />
+                          </div>
+                          <div className="text-[10px] text-ink-secondary">{b.short_id} · {b.confidence}%</div>
+                        </div>
+                        <div className="sm:border-l sm:border-conflict/30 sm:pl-3">
+                          <div className="text-[10px] uppercase tracking-widest text-conflict mb-1">conflicts with</div>
+                          <button
+                            onClick={() => window.location.hash = c.id}
+                            className="text-left text-xs text-ink-primary hover:text-amber-glow line-clamp-2 mb-1"
+                          >{c.statement}</button>
+                          <div className="h-1 bg-edge relative mb-1">
+                            <div className="absolute inset-y-0 left-0 bg-conflict" style={{ width: `${c.confidence}%` }} />
+                          </div>
+                          <div className="text-[10px] text-ink-secondary">{c.short_id} · {c.confidence}%</div>
+                        </div>
+                      </div>
+                      {b.confidence >= 70 && c.confidence >= 70 && (
+                        <div className="mt-2 text-[10px] text-conflict uppercase tracking-widest">
+                          ! high-confidence collision — review evidence
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </Section>
             )}
 

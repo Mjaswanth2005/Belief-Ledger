@@ -414,6 +414,94 @@ async def reset_all():
     return {"reset": True}
 
 
+@api.get("/cruxes")
+async def top_cruxes(limit: int = 5):
+    """Top-N beliefs ranked by centrality × revision-volatility (proxy: 1 + revisions),
+    then by confidence. Falls back to centrality-only when ledger is small."""
+    beliefs = await _list_beliefs()
+    cent = await _centrality_map()
+    for b in beliefs:
+        b["centrality"] = round(cent.get(b["id"], 0), 2)
+    # score: prioritize beliefs that are both load-bearing and have moved (revisions > 1)
+    beliefs.sort(
+        key=lambda b: (
+            b["centrality"] * (1 + 0.5 * max(0, b.get("revisions", 1) - 1)),
+            b["confidence"],
+        ),
+        reverse=True,
+    )
+    top = beliefs[:limit]
+    out = []
+    deps = await _list_dependencies()
+    for b in top:
+        cruxes = b.get("cruxes")
+        if not cruxes:
+            upstream_ids = [d["depends_on"] for d in deps if d["dependent"] == b["id"] and d.get("kind") == "depends_on"]
+            upstream = await db.beliefs.find({"id": {"$in": upstream_ids}}, {"_id": 0}).to_list(50) if upstream_ids else []
+            try:
+                cruxes = llm_service.compute_crux(b, upstream)
+                await db.beliefs.update_one({"id": b["id"]}, {"$set": {"cruxes": cruxes, "cruxes_at": now_iso()}})
+            except Exception:
+                log.exception("compute_crux failed in top_cruxes")
+                cruxes = []
+        out.append({
+            "id": b["id"],
+            "short_id": b["short_id"],
+            "statement": b["statement"],
+            "confidence": b["confidence"],
+            "centrality": b["centrality"],
+            "topic": b["topic"],
+            "cruxes": cruxes or [],
+        })
+    return {"items": out}
+
+
+@api.get("/beliefs/{belief_id}/ripple")
+async def belief_ripple(belief_id: str):
+    """All beliefs whose stance would be affected if this belief changes."""
+    b = await db.beliefs.find_one({"id": belief_id}, {"_id": 0})
+    if not b:
+        raise HTTPException(404, "Belief not found")
+    deps = await _list_dependencies()
+    beliefs = {x["id"]: x for x in await _list_beliefs()}
+    # BFS over reverse edges (depends_on points root→leaf? In our schema, dep.dependent depends on dep.depends_on,
+    # so children of `belief_id` are those rows where depends_on == belief_id)
+    visited, queue, ripple = {belief_id}, [belief_id], []
+    while queue:
+        cur = queue.pop(0)
+        for d in deps:
+            if d["depends_on"] == cur and d["dependent"] not in visited:
+                visited.add(d["dependent"])
+                target = beliefs.get(d["dependent"])
+                if target:
+                    ripple.append({**target, "_rel": d.get("kind", "depends_on"), "_via": cur})
+                    queue.append(d["dependent"])
+    return {"belief_id": belief_id, "ripple": ripple, "count": len(ripple)}
+
+
+DEMO_ENTRIES = [
+    "I'm convinced remote work is better for all engineers. Async communication forces clarity, and you ship more without the constant interruption of an open office.",
+    "Honestly though, junior engineers really need in-person mentorship to grow. They absorb how senior people debug just by overhearing it, and that's irreplaceable.",
+    "Compound interest is the single most underrated force in personal finance. People can't internalize exponential curves, which is exactly why most folks underinvest in their 20s.",
+    "Most startup advice is survivorship bias. The reason one founder's tactic worked rarely generalizes because the base rates that would let you judge it are hidden.",
+]
+
+
+@api.post("/seed-demo")
+async def seed_demo():
+    """Seed 3-4 example beliefs with real LLM extraction so user sees structure immediately."""
+    for coll in ("entries", "beliefs", "dependencies", "revisions"):
+        await db[coll].delete_many({})
+    total = 0
+    for text in DEMO_ENTRIES:
+        try:
+            res = await create_entry(EntryIn(text=text))
+            total += res.get("count", 0)
+        except Exception:
+            log.exception("seed entry failed")
+    return {"seeded_beliefs": total, "entries": len(DEMO_ENTRIES)}
+
+
 app.include_router(api)
 
 app.add_middleware(

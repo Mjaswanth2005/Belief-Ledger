@@ -7,7 +7,7 @@ const LINK_COLOR = {
   supports: "rgba(16, 185, 129, 0.55)",
 };
 
-export default function GraphView({ graph, onSelect }) {
+export default function GraphView({ graph, onSelect, onSeed, seeding }) {
   const wrapRef = useRef(null);
   const fgRef = useRef(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -65,7 +65,17 @@ export default function GraphView({ graph, onSelect }) {
      │   No nodes yet.     │
      └─────────────────────┘`}
         </pre>
-        <div>Submit entries to populate the dependency graph.</div>
+        <div className="mb-4">Submit entries to populate the dependency graph.</div>
+        {onSeed && (
+          <button
+            onClick={onSeed}
+            disabled={seeding}
+            className="border border-amber-glow text-amber-glow px-4 py-2 text-xs uppercase tracking-[0.25em] hover:bg-amber-glow hover:text-void transition-colors disabled:opacity-50"
+            data-testid="seed-from-graph-btn"
+          >
+            {seeding ? "seeding…" : "[ load demo ledger ]"}
+          </button>
+        )}
       </div>
     );
   }

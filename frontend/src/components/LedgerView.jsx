@@ -14,7 +14,7 @@ function fmtTime(iso) {
   } catch { return iso; }
 }
 
-export default function LedgerView({ revisions, beliefs, onSelect }) {
+export default function LedgerView({ revisions, beliefs, onSelect, onSeed, seeding }) {
   if (!revisions || revisions.length === 0) {
     return (
       <div className="p-8 text-center text-ink-secondary text-sm" data-testid="ledger-empty">
@@ -24,7 +24,17 @@ export default function LedgerView({ revisions, beliefs, onSelect }) {
      │   No commits yet.   │
      └─────────────────────┘`}
         </pre>
-        <div>Write your first entry to start tracking.</div>
+        <div className="mb-4">Write your first entry to start tracking.</div>
+        {onSeed && (
+          <button
+            onClick={onSeed}
+            disabled={seeding}
+            className="border border-amber-glow text-amber-glow px-4 py-2 text-xs uppercase tracking-[0.25em] hover:bg-amber-glow hover:text-void transition-colors disabled:opacity-50"
+            data-testid="seed-from-ledger-btn"
+          >
+            {seeding ? "seeding…" : "[ load demo ledger ]"}
+          </button>
+        )}
       </div>
     );
   }
