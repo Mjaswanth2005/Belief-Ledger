@@ -16,13 +16,13 @@ def get_client() -> OpenAI:
     global _client
     if _client is None:
         _client = OpenAI(
-            base_url=os.environ["NEBIUS_BASE_URL"],
-            api_key=os.environ["NEBIUS_API_KEY"],
+            base_url=os.environ["LLM_BASE_URL"],
+            api_key=os.environ["LLM_API_KEY"],
         )
     return _client
 
 
-MODEL = os.environ.get("NEBIUS_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
+MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
 
 
 def _parse_json(text: str) -> dict:
