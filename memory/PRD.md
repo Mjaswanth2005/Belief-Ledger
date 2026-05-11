@@ -48,3 +48,10 @@ Addressing 6 UX gaps user identified:
 - Empty-state [load demo ledger] buttons on Ledger/Graph
 - BeliefDetail contradictions render side-by-side confidence comparison
 - llm_service hardened: response_format=json_object + retry on empty extraction
+
+## Iteration 3 (Supabase + Groq migration)
+- Migrated storage: MongoDB → Supabase Postgres (transaction pooler, port 6543)
+- Backend: async SQLAlchemy + asyncpg + Alembic. Tables: entries, beliefs, dependencies, revisions (JSONB for evidence/assumptions/cruxes; FK ondelete=CASCADE)
+- Initial migration applied: `alembic upgrade head`
+- Swapped LLM provider: Nebius → Groq (`llama-3.3-70b-versatile`, OpenAI-compatible). Generic env names `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` to keep provider-agnostic.
+- Verified: 21/21 pytest, all endpoints working; seed-demo now reliably produces 7 beliefs with contradicts+supports edges (faster + more reliable due to Groq + response_format=json_object)
