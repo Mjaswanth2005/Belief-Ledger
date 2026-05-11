@@ -1,0 +1,117 @@
+{
+  "theme_and_archetype": {
+    "theme": "dark",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) + Retro-Futurism (The 'Terminal' Look)",
+    "description": "A deep void dark, highly dense, monospace-driven terminal aesthetic that treats beliefs like a git repository or a financial ledger. Emphasizes stark structural borders, monospace typography, and data-density."
+  },
+  "typography": {
+    "font_families": {
+      "headings": "JetBrains Mono, IBM Plex Mono, monospace",
+      "body": "JetBrains Mono, IBM Plex Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-3xl sm:text-4xl tracking-tighter font-medium",
+      "h2": "text-xl sm:text-2xl tracking-tight font-medium",
+      "h3": "text-lg sm:text-xl tracking-tight font-normal",
+      "body": "text-sm sm:text-base leading-relaxed",
+      "small_labels": "text-xs uppercase tracking-[0.2em] font-bold text-secondary"
+    },
+    "rules": [
+      "No rounded, soft fonts. Strictly monospace.",
+      "Headings are moderate in size (text-4xl max) to keep the dense dashboard feel.",
+      "Use ASCII brackets [ ] or >_ prefixes for section titles.",
+      "Data should feel structured like terminal outputs."
+    ]
+  },
+  "colors": {
+    "background": {
+      "primary": "#050505",
+      "surface": "#111111",
+      "surface_hover": "#1A1A1A"
+    },
+    "text": {
+      "primary": "#E5E5E5",
+      "secondary": "#888888",
+      "inverse": "#000000"
+    },
+    "accents": {
+      "primary": "#FFB000",
+      "primary_hover": "#E59E00",
+      "primary_glow": "rgba(255, 176, 0, 0.3)",
+      "conflict_red": "#EF4444",
+      "success_green": "#10B981"
+    },
+    "borders": {
+      "default": "#262626",
+      "focus": "#FFB000"
+    },
+    "rules": [
+      "Backgrounds are deep void black.",
+      "Never use pure #FFFFFF. Use #E5E5E5 for max contrast.",
+      "Borders are 1px solid, never soft drop shadows unless it's a neon glow for focus."
+    ]
+  },
+  "layout_and_spacing": {
+    "grid_system": "Mode B: The 'Control Room' Grid",
+    "spacing_scale": "Dense and compact padding (p-2, p-4) within panes, 1px gaps between grid items (achieved via border-collapse or gap-px with a background color).",
+    "containers": "All containers must have square corners (rounded-none). 1px solid border. No internal drop shadows.",
+    "alignment": "Strictly left-aligned. Center alignment is banned unless for empty state messages."
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#FFB000] text-[#050505] font-bold uppercase tracking-wider text-xs px-4 py-2 border border-[#FFB000] hover:bg-[#E59E00] transition-colors rounded-none",
+      "secondary": "bg-transparent text-[#FFB000] font-bold uppercase tracking-wider text-xs px-4 py-2 border border-[#FFB000] hover:bg-[#FFB000]/10 transition-colors rounded-none"
+    },
+    "inputs": {
+      "textarea": "bg-[#050505] border border-[#262626] text-[#E5E5E5] p-4 focus:outline-none focus:border-[#FFB000] focus:ring-1 focus:ring-[#FFB000] rounded-none w-full min-h-[200px] font-mono resize-none transition-all",
+      "text": "bg-[#050505] border border-[#262626] text-[#E5E5E5] px-3 py-2 focus:outline-none focus:border-[#FFB000] rounded-none font-mono"
+    },
+    "cards_and_panes": {
+      "default": "bg-[#111111] border border-[#262626] rounded-none p-4",
+      "header": "border-b border-[#262626] pb-2 mb-4 text-xs tracking-[0.2em] text-[#888888] uppercase flex justify-between items-center"
+    },
+    "alerts_and_conflicts": {
+      "conflict_diff": "bg-[#EF4444]/10 border-l-2 border-[#EF4444] text-[#E5E5E5] p-3 font-mono",
+      "resolution": "bg-[#10B981]/10 border-l-2 border-[#10B981] text-[#E5E5E5] p-3 font-mono"
+    },
+    "confidence_dial": {
+      "style": "Use Shadcn Slider for the confidence dial (0-100%). Override track to bg-[#262626], and thumb to be square (rounded-none) and bg-[#FFB000]. Alternatively, pure ASCII styling: `[####---] 60%`."
+    },
+    "shadcn_components": {
+      "tabs": "Override 'h-9' with 'h-auto rounded-none'. Border bottom on active tab with #FFB000.",
+      "dropdown": "rounded-none bg-[#111111] border-[#262626] text-[#E5E5E5]",
+      "toast": "Use Sonner but style it strictly rectangular, black bg, amber text, 1px border."
+    }
+  },
+  "surface_strategies": {
+    "style": "Retro-Futurism / The Terminal Look",
+    "implementation": [
+      "Use strict 1px borders (#262626) to create window panes, similar to a tiling window manager.",
+      "Apply a subtle scanline effect using repeating-linear-gradient on the main background (optional, but adds texture).",
+      "Use neon glow (drop-shadow-[0_0_8px_rgba(255,176,0,0.5)]) ONLY on active focus states or highly critical contradiction alerts."
+    ]
+  },
+  "motion_and_interactions": {
+    "hover_states": "Hard cuts or fast linear transitions (duration-75 or duration-150 ease-linear). No bouncy springs.",
+    "focus_states": "High contrast 1px outline or ring with the primary accent (#FFB000).",
+    "loading": "Use a blinking block cursor (█) or an ASCII spinner (-, \\, |, /) instead of a circular loading spinner."
+  },
+  "icons_and_assets": {
+    "library": "lucide-react",
+    "rules": "Use sharp, geometric icons. Avoid soft, rounded icons. Whenever possible, replace icons with ASCII equivalents (e.g., '[+]', '->', '[x]').",
+    "media": {
+      "image_urls": [],
+      "note_to_agent": "Images are explicitly prohibited in this design to maintain a pure, uncompromising terminal aesthetic. DO NOT use placeholder images. Rely entirely on typography, 1px borders, and pure CSS structures (Retro-Futurism Terminal Look)."
+    }
+  },
+  "special_features_implementation": {
+    "ledger_view": "Design like a `git log`. Chronological feed with vertical connecting lines. Each entry has a hash-like ID (e.g., `blf_8f92a`) and a timestamp. Use monospace columns for alignment.",
+    "force_directed_graph": "Use `react-force-graph-2d` (or similar). Canvas background `#050505`. Nodes: `#111111` with `#FFB000` borders. Links: `#262626` or `#FFB000` with 0.3 opacity. Highlight upstream paths on node hover.",
+    "crux_view": "Render like a code stack trace. `-> Upstream Assumption: [Belief ID] at Confidence 80%`",
+    "conflict_scanner": "Render like a `git diff`. Highlight conflicting text in red background colors with strikethrough for contradicted beliefs, and green for aligned text."
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure text contrast meets APCA/WCAG standards (#E5E5E5 on #050505 provides > 15:1 contrast).",
+    "testing_attributes": "All interactive elements MUST include `data-testid` attribute based on role (e.g., `data-testid='submit-belief-button'`, `data-testid='confidence-slider'`)."
+  }
+}
